@@ -768,6 +768,7 @@ export class GitExtension implements IGitExtension {
    */
   async refreshBranch(): Promise<void> {
     const response = await this._branch();
+    const previousBranch = this._currentBranch.name;
 
     if (response.code === 0) {
       this._branches = response.branches;
@@ -780,6 +781,10 @@ export class GitExtension implements IGitExtension {
     } else {
       this._branches = [];
       this._currentBranch = null;
+    }
+
+    if (this._currentBranch.name !== previousBranch) {
+      this._headChanged.emit();
     }
   }
 

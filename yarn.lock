@@ -854,7 +854,7 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^13.0.0"
 
-"@jupyterlab/application@^1.1.0":
+"@jupyterlab/application@^1.1.0", "@jupyterlab/application@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@jupyterlab/application/-/application-1.2.1.tgz#55842eaabe816492e6bb5a97ff2023e1f2734743"
   integrity sha512-CYA0/s/jPNV4x6TtRn4XTVLYOlJIUS7jz2SzxLoSn1sVEg5783y7z6SQPALyYFJINd3XOMgmax3tVVYtQAM2KA==
@@ -969,7 +969,7 @@
     codemirror "~5.47.0"
     react "~16.8.4"
 
-"@jupyterlab/console@^1.1.0":
+"@jupyterlab/console@^1.1.0", "@jupyterlab/console@^1.2.2":
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/@jupyterlab/console/-/console-1.2.2.tgz#02d926139713a922cc4cf3ef62f1400bdc826dcf"
   integrity sha512-dfGeqnYRsUVIy+Sneb64tEIv0gCRYw6mco9S9d8JhyAqmIhaICUbXGWjz5GSuZWeDkzPOgX5tHBzh96wyyrlXw==
@@ -1067,7 +1067,21 @@
     "@phosphor/widgets" "^1.9.0"
     react "~16.8.4"
 
-"@jupyterlab/mainmenu@^1.1.0":
+"@jupyterlab/fileeditor@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@jupyterlab/fileeditor/-/fileeditor-1.2.1.tgz#0ee54334c36bc2d7f646ef30b9d27801b436dc2e"
+  integrity sha512-C1oCpUDRJ+AXn4cgsV7G55pSTHwxOGeaB7Q1O4hwSH+btwjKXFTd/9ayD4BE7wyM81EgTsd/WOXP3VPGKR3xMA==
+  dependencies:
+    "@jupyterlab/apputils" "^1.2.1"
+    "@jupyterlab/codeeditor" "^1.2.0"
+    "@jupyterlab/docregistry" "^1.2.1"
+    "@jupyterlab/statusbar" "^1.2.1"
+    "@phosphor/coreutils" "^1.3.1"
+    "@phosphor/messaging" "^1.3.0"
+    "@phosphor/widgets" "^1.9.0"
+    react "~16.8.4"
+
+"@jupyterlab/mainmenu@^1.1.0", "@jupyterlab/mainmenu@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@jupyterlab/mainmenu/-/mainmenu-1.2.1.tgz#5e0b6eeca6f72f82188c44dd3f2dbfd288890359"
   integrity sha512-T1WfTOkzMtbE1zXVeMM2oCTz/wvAPoeQiKTlsSLOLOP5rDl3fbDx7EWHAHRqDyGPbakTbqiQPHrbqRRiGhayDA==
@@ -1176,6 +1190,23 @@
     "@phosphor/signaling" "^1.3.0"
     node-fetch "^2.6.0"
     ws "^7.0.0"
+
+"@jupyterlab/statusbar-extension@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@jupyterlab/statusbar-extension/-/statusbar-extension-1.2.2.tgz#8d356961479a52a6bd69645f4334a239b3d483d5"
+  integrity sha512-lzr8bZ3i2yVj4vHrHAJZjgzKRR0uiWJRUCuCNWGAp2iPzoFuXJi5bLDtWdrXxhnUMT7Zxz8b1XKLD6V8kZht9g==
+  dependencies:
+    "@jupyterlab/application" "^1.2.1"
+    "@jupyterlab/apputils" "^1.2.1"
+    "@jupyterlab/cells" "^1.2.2"
+    "@jupyterlab/console" "^1.2.2"
+    "@jupyterlab/coreutils" "^3.2.0"
+    "@jupyterlab/docregistry" "^1.2.1"
+    "@jupyterlab/fileeditor" "^1.2.1"
+    "@jupyterlab/mainmenu" "^1.2.1"
+    "@jupyterlab/notebook" "^1.2.2"
+    "@jupyterlab/statusbar" "^1.2.1"
+    "@phosphor/widgets" "^1.9.0"
 
 "@jupyterlab/statusbar@^1.2.1":
   version "1.2.1"

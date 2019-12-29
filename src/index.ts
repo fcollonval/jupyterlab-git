@@ -11,9 +11,11 @@ import {
 } from '@jupyterlab/filebrowser';
 import { IMainMenu } from '@jupyterlab/mainmenu';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import { IStatusBar } from '@jupyterlab/statusbar';
 import { defaultIconRegistry } from '@jupyterlab/ui-components';
+import { CommandRegistry } from '@phosphor/commands';
 import { Menu } from '@phosphor/widgets';
-import { addCommands, CommandIDs } from './gitMenuCommands';
+import { addCommands, CommandIDs } from './commands';
 import { GitExtension } from './model';
 import { registerGitIcons } from './style/icons';
 import { IGitExtension } from './tokens';
@@ -39,12 +41,12 @@ const RESOURCES = [
 const plugin: JupyterFrontEndPlugin<IGitExtension> = {
   id: '@jupyterlab/git:plugin',
   requires: [
-    IMainMenu,
     ILayoutRestorer,
     IFileBrowserFactory,
     IRenderMimeRegistry,
     ISettingRegistry
   ],
+  optional: [IMainMenu, IStatusBar],
   provides: IGitExtension,
   activate,
   autoStart: true
@@ -60,11 +62,12 @@ export default plugin;
  */
 async function activate(
   app: JupyterFrontEnd,
-  mainMenu: IMainMenu,
   restorer: ILayoutRestorer,
   factory: IFileBrowserFactory,
   renderMime: IRenderMimeRegistry,
-  settingRegistry: ISettingRegistry
+  settingRegistry: ISettingRegistry,
+  mainMenu: IMainMenu | null,
+  statusBar: IStatusBar | null
 ): Promise<IGitExtension> {
   let settings: ISettingRegistry.ISettings;
 
@@ -114,11 +117,15 @@ async function activate(
     // sessions widget in the sidebar.
     app.shell.add(gitPlugin, 'left', { rank: 200 });
 
+    addCommands(app, gitExtension, factory.defaultBrowser, settings);
     // Add a menu for the plugin
-    mainMenu.addMenu(
-      createGitMenu(app, gitExtension, factory.defaultBrowser, settings),
-      { rank: 60 }
-    );
+    if (mainMenu) {
+      mainMenu.addMenu(Private.createGitMenu(app.commands), { rank: 60 });
+    }
+
+    // Add status bar widgets
+    if (statusBar) {
+    }
   }
   // Add a clone button to the file browser extension toolbar
   addCloneButton(gitExtension, factory.defaultBrowser);
@@ -126,39 +133,35 @@ async function activate(
   return gitExtension;
 }
 
-/**
- * Add commands and menu items
- */
-function createGitMenu(
-  app: JupyterFrontEnd,
-  gitExtension: IGitExtension,
-  fileBrowser: FileBrowser,
-  settings: ISettingRegistry.ISettings
-): Menu {
-  const { commands } = app;
-  addCommands(app, gitExtension, fileBrowser, settings);
-
-  let menu = new Menu({ commands });
-  menu.title.label = 'Git';
-  [CommandIDs.gitUI, CommandIDs.gitTerminalCommand, CommandIDs.gitInit].forEach(
-    command => {
+namespace Private {
+  /**
+   * Add commands and menu items
+   */
+  export function createGitMenu(commands: CommandRegistry): Menu {
+    let menu = new Menu({ commands });
+    menu.title.label = 'Git';
+    [
+      CommandIDs.gitUI,
+      CommandIDs.gitTerminalCommand,
+      CommandIDs.gitInit
+    ].forEach(command => {
       menu.addItem({ command });
-    }
-  );
-
-  let tutorial = new Menu({ commands });
-  tutorial.title.label = ' Tutorial ';
-  RESOURCES.map(args => {
-    tutorial.addItem({
-      args,
-      command: CommandIDs.gitOpenUrl
     });
-  });
-  menu.addItem({ type: 'submenu', submenu: tutorial });
 
-  menu.addItem({ type: 'separator' });
+    let tutorial = new Menu({ commands });
+    tutorial.title.label = ' Tutorial ';
+    RESOURCES.map(args => {
+      tutorial.addItem({
+        args,
+        command: CommandIDs.gitOpenUrl
+      });
+    });
+    menu.addItem({ type: 'submenu', submenu: tutorial });
 
-  menu.addItem({ command: CommandIDs.gitToggleSimpleStaging });
+    menu.addItem({ type: 'separator' });
 
-  return menu;
+    menu.addItem({ command: CommandIDs.gitToggleSimpleStaging });
+
+    return menu;
+  }
 }
