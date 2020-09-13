@@ -694,11 +694,11 @@ class Git:
 
         return await self.add(untracked, top_repo_path)
 
-    async def reset(self, filename, top_repo_path):
+    async def reset(self, filenames, top_repo_path):
         """
-        Execute git reset <filename> command & return the result.
+        Execute git reset <filenames> command & return the result.
         """
-        cmd = ["git", "reset", "--", filename]
+        cmd = ["git", "reset", "--", *filenames]
         code, _, error = await execute(cmd, cwd=top_repo_path)
 
         if code != 0:
@@ -796,11 +796,11 @@ class Git:
         else:
             return {"code": code, "message": my_error, "command": " ".join(cmd)}
 
-    async def checkout(self, filename, top_repo_path):
+    async def checkout(self, filenames, top_repo_path):
         """
         Execute git checkout command for the filename & return the result.
         """
-        cmd = ["git", "checkout", "--", filename]
+        cmd = ["git", "checkout", "--", *filenames]
         code, _, error = await execute(cmd, cwd=top_repo_path)
 
         if code != 0:

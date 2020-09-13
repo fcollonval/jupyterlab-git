@@ -59,8 +59,7 @@ export namespace CommandIDs {
   export const gitFileDiscard = 'git:context-discard';
   export const gitFileOpen = 'git:context-open';
   export const gitFileUnstage = 'git:context-unstage';
-  export const gitFileStage = 'git:context-stage';
-  export const gitFileTrack = 'git:context-track';
+  export const gitFileAdd = 'git:context-add';
   export const gitIgnore = 'git:context-ignore';
   export const gitIgnoreExtension = 'git:context-ignoreExtension';
 }
@@ -145,7 +144,9 @@ export function addCommands(
     label: args => args['text'] as string,
     execute: args => {
       const url = args['url'] as string;
-      window.open(url);
+      if (url) {
+        window.open(url);
+      }
     }
   });
 
@@ -153,7 +154,7 @@ export function addCommands(
   commands.addCommand(CommandIDs.gitToggleSimpleStaging, {
     label: 'Simple staging',
     isToggled: () => !!settings.composite['simpleStaging'],
-    execute: args => {
+    execute: () => {
       settings.set('simpleStaging', !settings.composite['simpleStaging']);
     }
   });
@@ -162,7 +163,7 @@ export function addCommands(
   commands.addCommand(CommandIDs.gitToggleDoubleClickDiff, {
     label: 'Double click opens diff',
     isToggled: () => !!settings.composite['doubleClickDiff'],
-    execute: args => {
+    execute: () => {
       settings.set('doubleClickDiff', !settings.composite['doubleClickDiff']);
     }
   });
@@ -258,136 +259,164 @@ export function addCommands(
   /* Context menu commands */
   commands.addCommand(CommandIDs.gitFileOpen, {
     label: 'Open',
-    caption: 'Open selected file',
+    caption: 'Open selected files',
     execute: async args => {
-      const file: Git.IStatusFileResult = args as any;
+      const files: Git.IStatusFileResult[] = args['files'] as any;
 
-      const { x, y, to } = file;
-      if (x === 'D' || y === 'D') {
-        await showErrorMessage(
-          'Open File Failed',
-          'This file has been deleted!'
-        );
-        return;
-      }
-      try {
-        if (to[to.length - 1] !== '/') {
-          commands.execute('docmanager:open', {
-            path: model.getRelativeFilePath(to)
-          });
-        } else {
-          console.log('Cannot open a folder here');
-        }
-      } catch (err) {
-        console.error(`Fail to open ${to}.`);
-      }
+      await Promise.all(
+        files?.map(async file => {
+          const { x, y, to } = file;
+          if (x === 'D' || y === 'D') {
+            if (files.length === 1) {
+              await showErrorMessage(
+                'Open File Failed',
+                `${to} has been deleted!`
+              );
+            }
+            return;
+          }
+          try {
+            if (to[to.length - 1] !== '/') {
+              await commands.execute('docmanager:open', {
+                path: model.getRelativeFilePath(to)
+              });
+            } else {
+              console.log('Cannot open a folder here');
+            }
+          } catch (err) {
+            console.error(`Fail to open ${to}.`);
+          }
+        })
+      );
     }
   });
 
   commands.addCommand(CommandIDs.gitFileDiff, {
     label: 'Diff',
-    caption: 'Diff selected file',
+    caption: 'Diff selected files',
     execute: args => {
-      const { context, filePath, isText, status } = (args as any) as {
+      const files = (args['files'] as any) as {
         context?: IDiffContext;
         filePath: string;
         isText: boolean;
         status?: Git.Status;
-      };
+      }[];
 
-      let diffContext = context;
-      if (!diffContext) {
-        const specialRef = status === 'staged' ? 'INDEX' : 'WORKING';
-        diffContext = {
-          currentRef: { specialRef },
-          previousRef: { gitRef: 'HEAD' }
-        };
-      }
+      files?.forEach(file => {
+        const { context, filePath, isText, status } = file;
+        let diffContext = context;
+        if (!diffContext) {
+          const specialRef = status === 'staged' ? 'INDEX' : 'WORKING';
+          diffContext = {
+            currentRef: { specialRef },
+            previousRef: { gitRef: 'HEAD' }
+          };
+        }
 
-      if (isDiffSupported(filePath) || isText) {
-        const id = `nbdiff-${filePath}-${getRefValue(diffContext.currentRef)}`;
-        const mainAreaItems = shell.widgets('main');
-        let mainAreaItem = mainAreaItems.next();
-        while (mainAreaItem) {
-          if (mainAreaItem.id === id) {
-            shell.activateById(id);
-            break;
+        if (isDiffSupported(filePath) || isText) {
+          const id = `nbdiff-${filePath}-${getRefValue(
+            diffContext.currentRef
+          )}`;
+          const mainAreaItems = shell.widgets('main');
+          let mainAreaItem = mainAreaItems.next();
+          while (mainAreaItem) {
+            if (mainAreaItem.id === id) {
+              shell.activateById(id);
+              break;
+            }
+            mainAreaItem = mainAreaItems.next();
           }
-          mainAreaItem = mainAreaItems.next();
-        }
 
-        if (!mainAreaItem) {
-          const serverRepoPath = model.getRelativeFilePath();
-          const nbDiffWidget = ReactWidget.create(
-            <RenderMimeProvider value={renderMime}>
-              <Diff
-                path={filePath}
-                diffContext={diffContext}
-                topRepoPath={serverRepoPath}
-              />
-            </RenderMimeProvider>
+          if (!mainAreaItem) {
+            const serverRepoPath = model.getRelativeFilePath();
+            const nbDiffWidget = ReactWidget.create(
+              <RenderMimeProvider value={renderMime}>
+                <Diff
+                  path={filePath}
+                  diffContext={diffContext}
+                  topRepoPath={serverRepoPath}
+                />
+              </RenderMimeProvider>
+            );
+            nbDiffWidget.id = id;
+            nbDiffWidget.title.label = PathExt.basename(filePath);
+            nbDiffWidget.title.icon = diffIcon;
+            nbDiffWidget.title.closable = true;
+            nbDiffWidget.addClass('jp-git-diff-parent-diff-widget');
+
+            shell.add(nbDiffWidget, 'main');
+            shell.activateById(nbDiffWidget.id);
+          }
+        } else {
+          showErrorMessage(
+            'Diff Not Supported',
+            `Diff is not supported for ${PathExt.extname(
+              filePath
+            ).toLocaleLowerCase()} files.`
           );
-          nbDiffWidget.id = id;
-          nbDiffWidget.title.label = PathExt.basename(filePath);
-          nbDiffWidget.title.icon = diffIcon;
-          nbDiffWidget.title.closable = true;
-          nbDiffWidget.addClass('jp-git-diff-parent-diff-widget');
-
-          shell.add(nbDiffWidget, 'main');
-          shell.activateById(nbDiffWidget.id);
         }
-      } else {
-        showErrorMessage(
-          'Diff Not Supported',
-          `Diff is not supported for ${PathExt.extname(
-            filePath
-          ).toLocaleLowerCase()} files.`
-        );
+      });
+    }
+  });
+
+  commands.addCommand(CommandIDs.gitFileAdd, {
+    label: args => {
+      const files: Git.IStatusFile[] = args['files'] as any;
+      if (files) {
+        return files[0].status === 'untracked' ? 'Track' : 'Stage';
       }
-    }
-  });
-
-  commands.addCommand(CommandIDs.gitFileStage, {
-    label: 'Stage',
-    caption: 'Stage the changes of selected file',
+      return 'Add';
+    },
+    caption: args => {
+      const files: Git.IStatusFile[] = args['files'] as any;
+      if (files) {
+        const action =
+          files[0].status === 'untracked'
+            ? 'Start tracking'
+            : 'Stage the changes of';
+        return action + ' the selected files';
+      }
+      return 'Add the selected files changes';
+    },
     execute: async args => {
-      const selectedFile: Git.IStatusFile = args as any;
-      await model.add(selectedFile.to);
-    }
-  });
-
-  commands.addCommand(CommandIDs.gitFileTrack, {
-    label: 'Track',
-    caption: 'Start tracking selected file',
-    execute: async args => {
-      const selectedFile: Git.IStatusFile = args as any;
-      await model.add(selectedFile.to);
+      const files: Git.IStatusFile[] = args['files'] as any;
+      if (files) {
+        await model.add(...files.map(file => file.to));
+      }
     }
   });
 
   commands.addCommand(CommandIDs.gitFileUnstage, {
     label: 'Unstage',
-    caption: 'Unstage the changes of selected file',
+    caption: 'Unstage the changes of the selected files',
     execute: async args => {
-      const selectedFile: Git.IStatusFile = args as any;
-      if (selectedFile.x !== 'D') {
-        await model.reset(selectedFile.to);
+      const files: Git.IStatusFile[] = args['files'] as any;
+      if (files) {
+        await model.reset(
+          ...files.filter(file => file.x !== 'D').map(file => file.to)
+        );
       }
     }
   });
 
   commands.addCommand(CommandIDs.gitFileDiscard, {
     label: 'Discard',
-    caption: 'Discard recent changes of selected file',
+    caption: 'Discard recent changes of selected files',
     execute: async args => {
-      const file: Git.IStatusFile = args as any;
+      const files: Git.IStatusFile[] = args['files'] as any;
+
+      if (!files) {
+        return;
+      }
+
+      const message =
+        files.length === 1 ? `${files[0].to}` : 'all selected files';
 
       const result = await showDialog({
         title: 'Discard changes',
         body: (
           <span>
-            Are you sure you want to permanently discard changes to{' '}
-            <b>{file.to}</b>? This action cannot be undone.
+            {`Are you sure you want to permanently discard changes to <b>${message}</b>? This action cannot be undone.`}
           </span>
         ),
         buttons: [
@@ -397,18 +426,26 @@ export function addCommands(
       });
       if (result.button.accept) {
         try {
-          if (file.status === 'staged' || file.status === 'partially-staged') {
-            await model.reset(file.to);
-          }
-          if (
-            file.status === 'unstaged' ||
-            (file.status === 'partially-staged' && file.x !== 'A')
-          ) {
-            // resetting an added file moves it to untracked category => checkout will fail
-            await model.checkout({ filename: file.to });
-          }
+          await model.reset(
+            ...files
+              .filter(
+                file =>
+                  file.status === 'staged' || file.status === 'partially-staged'
+              )
+              .map(file => file.to)
+          );
+          // resetting an added file moves it to untracked category => checkout will fail
+          await model.checkout({
+            filenames: files
+              .filter(
+                file =>
+                  file.status === 'unstaged' ||
+                  (file.status === 'partially-staged' && file.x !== 'A')
+              )
+              .map(file => file.to)
+          });
         } catch (reason) {
-          showErrorMessage(`Discard changes for ${file.to} failed.`, reason, [
+          showErrorMessage(`Discard changes for ${message} failed.`, reason, [
             Dialog.warnButton({ label: 'DISMISS' })
           ]);
         }
@@ -417,26 +454,31 @@ export function addCommands(
   });
 
   commands.addCommand(CommandIDs.gitIgnore, {
-    label: () => 'Ignore this file (add to .gitignore)',
-    caption: () => 'Ignore this file (add to .gitignore)',
+    label: 'Ignore these files (add to .gitignore)',
+    caption: 'Ignore these files (add to .gitignore)',
     execute: async args => {
-      const selectedFile: Git.IStatusFile = args as any;
-      if (selectedFile) {
-        await model.ignore(selectedFile.to, false);
+      const files: Git.IStatusFile[] = args['files'] as any;
+      if (files) {
+        await model.ignore(
+          files.map(file => file.to),
+          false
+        );
       }
     }
   });
 
   commands.addCommand(CommandIDs.gitIgnoreExtension, {
     label: args => {
-      const selectedFile: Git.IStatusFile = args as any;
+      const files: Git.IStatusFile[] = args['files'] as any;
+      const selectedFile = files[0];
       return `Ignore ${PathExt.extname(
         selectedFile.to
       )} extension (add to .gitignore)`;
     },
     caption: 'Ignore this file extension (add to .gitignore)',
     execute: async args => {
-      const selectedFile: Git.IStatusFile = args as any;
+      const files: Git.IStatusFile[] = args['files'] as any;
+      const selectedFile = files[0];
       if (selectedFile) {
         const extension = PathExt.extname(selectedFile.to);
         if (extension.length > 0) {
@@ -449,14 +491,17 @@ export function addCommands(
             ]
           });
           if (result.button.label === 'Ignore') {
-            await model.ignore(selectedFile.to, true);
+            await model.ignore([selectedFile.to], true);
           }
         }
       }
     },
     isVisible: args => {
-      const selectedFile: Git.IStatusFile = args as any;
-      const extension = PathExt.extname(selectedFile.to);
+      const files: Git.IStatusFile[] = args['files'] as any;
+      if (!files || files.length > 1) {
+        return false;
+      }
+      const extension = PathExt.extname(files[0].to);
       return extension.length > 0;
     }
   });

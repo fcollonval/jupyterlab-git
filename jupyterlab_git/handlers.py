@@ -302,8 +302,8 @@ class GitResetHandler(GitHandler):
         if data["reset_all"]:
             body = await self.git.reset_all(top_repo_path)
         else:
-            filename = data["filename"]
-            body = await self.git.reset(filename, top_repo_path)
+            filenames = data["filenames"]
+            body = await self.git.reset(filenames, top_repo_path)
 
         if body["code"] != 0:
             self.set_status(500)
@@ -368,7 +368,7 @@ class GitCheckoutHandler(GitHandler):
         elif data["checkout_all"]:
             body = await self.git.checkout_all(top_repo_path)
         else:
-            body = await self.git.checkout(data["filename"], top_repo_path)
+            body = await self.git.checkout(data["filenames"], top_repo_path)
 
         if body["code"] != 0:
             self.set_status(500)

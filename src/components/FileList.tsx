@@ -73,14 +73,14 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
     switch (selectedFile.status) {
       case 'unstaged':
         commands.push(
-          CommandIDs.gitFileStage,
+          CommandIDs.gitFileAdd,
           CommandIDs.gitFileDiscard,
           CommandIDs.gitFileDiff
         );
         break;
       case 'untracked':
         commands.push(
-          CommandIDs.gitFileTrack,
+          CommandIDs.gitFileAdd,
           CommandIDs.gitIgnore,
           CommandIDs.gitIgnoreExtension
         );
@@ -95,13 +95,20 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
         contextMenu.addItem({
           command,
           args: {
-            filePath: selectedFile.to,
-            isText: !selectedFile.is_binary,
-            status: selectedFile.status
+            files: [
+              {
+                filePath: selectedFile.to,
+                isText: !selectedFile.is_binary,
+                status: selectedFile.status
+              }
+            ]
           }
         });
       } else {
-        contextMenu.addItem({ command, args: selectedFile as any });
+        contextMenu.addItem({
+          command,
+          args: { files: [selectedFile as any] }
+        });
       }
     });
     contextMenu.open(event.clientX, event.clientY);
@@ -135,13 +142,20 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
         contextMenu.addItem({
           command,
           args: {
-            filePath: selectedFile.to,
-            isText: !selectedFile.is_binary,
-            status: selectedFile.status
+            files: [
+              {
+                filePath: selectedFile.to,
+                isText: !selectedFile.is_binary,
+                status: selectedFile.status
+              }
+            ]
           }
         });
       } else {
-        contextMenu.addItem({ command, args: selectedFile as any });
+        contextMenu.addItem({
+          command,
+          args: { files: [selectedFile as any] }
+        });
       }
     });
     contextMenu.open(event.clientX, event.clientY);
@@ -309,7 +323,9 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
       >
         {files.map((file: Git.IStatusFile) => {
           const openFile = () => {
-            this.props.commands.execute(CommandIDs.gitFileOpen, file as any);
+            this.props.commands.execute(CommandIDs.gitFileOpen, {
+              files: [file as any]
+            });
           };
           const diffButton = this._createDiffButton(file);
           return (
@@ -383,7 +399,9 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
       >
         {files.map((file: Git.IStatusFile) => {
           const openFile = () => {
-            this.props.commands.execute(CommandIDs.gitFileOpen, file as any);
+            this.props.commands.execute(CommandIDs.gitFileOpen, {
+              files: [file as any]
+            });
           };
           const diffButton = this._createDiffButton(file);
           return (
@@ -464,10 +482,9 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
                     icon={openIcon}
                     title={'Open this file'}
                     onClick={() => {
-                      this.props.commands.execute(
-                        CommandIDs.gitFileOpen,
-                        file as any
-                      );
+                      this.props.commands.execute(CommandIDs.gitFileOpen, {
+                        files: [file as any]
+                      });
                     }}
                   />
                   <ActionButton
@@ -485,10 +502,9 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
               model={this.props.model}
               onDoubleClick={() => {
                 if (!doubleClickDiff) {
-                  this.props.commands.execute(
-                    CommandIDs.gitFileOpen,
-                    file as any
-                  );
+                  this.props.commands.execute(CommandIDs.gitFileOpen, {
+                    files: [file as any]
+                  });
                 }
               }}
               selected={this._isSelectedFile(file)}
@@ -519,7 +535,9 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
       >
         {files.map((file: Git.IStatusFile) => {
           const openFile = () => {
-            this.props.commands.execute(CommandIDs.gitFileOpen, file as any);
+            this.props.commands.execute(CommandIDs.gitFileOpen, {
+              files: [file as any]
+            });
           };
 
           // Default value for actions and double click
@@ -638,9 +656,13 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
   private async _openDiffView(file: Git.IStatusFile): Promise<void> {
     try {
       await this.props.commands.execute(CommandIDs.gitFileDiff, {
-        filePath: file.to,
-        isText: !file.is_binary,
-        status: file.status
+        files: [
+          {
+            filePath: file.to,
+            isText: !file.is_binary,
+            status: file.status
+          }
+        ]
       });
     } catch (reason) {
       console.error(`Failed to open diff view for ${file.to}.\n${reason}`);

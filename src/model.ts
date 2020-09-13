@@ -360,7 +360,7 @@ export class GitExtension implements IGitExtension {
       branchname: '',
       startpoint: '',
       checkout_all: true,
-      filename: '',
+      filenames: new Array<string>(),
       top_repo_path: path
     };
 
@@ -372,8 +372,8 @@ export class GitExtension implements IGitExtension {
         if (options.newBranch) {
           body.startpoint = options.startpoint || this._currentBranch.name;
         }
-      } else if (options.filename) {
-        body.filename = options.filename;
+      } else if (options.filenames) {
+        body.filenames = options.filenames;
         body.checkout_all = false;
       }
     }
@@ -391,7 +391,7 @@ export class GitExtension implements IGitExtension {
           changes.files.forEach(file => this._revertFile(file));
         }
       } else {
-        this._revertFile(options.filename);
+        options.filenames.forEach(filename => this._revertFile(filename));
       }
     } finally {
       this._removeTask(tid);
@@ -574,21 +574,25 @@ export class GitExtension implements IGitExtension {
   /**
    * Add an entry in .gitignore file
    *
-   * @param filePath File to ignore
+   * @param filenames Files to ignore
    * @param useExtension Whether to ignore the file or its extension
    *
    * @throws {Git.NotInRepository} If the current path is not a Git repository
    * @throws {Git.GitResponseError} If the server response is not ok
    * @throws {ServerConnection.NetworkError} If the request cannot be made
    */
-  async ignore(filePath: string, useExtension: boolean): Promise<void> {
+  async ignore(filenames: string[], useExtension: boolean): Promise<void> {
     const path = await this._getPathRespository();
 
-    await requestAPI('ignore', 'POST', {
-      top_repo_path: path,
-      file_path: filePath,
-      use_extension: useExtension
-    });
+    // Treat the file one at a time but open .gitignore and refresh the status
+    // when all have been added
+    for (const filePath of filenames) {
+      await requestAPI('ignore', 'POST', {
+        top_repo_path: path,
+        file_path: filePath,
+        use_extension: useExtension
+      });
+    }
 
     this._openGitignore();
     await this.refreshStatus();
@@ -777,25 +781,25 @@ export class GitExtension implements IGitExtension {
    *
    * -  If no filename is provided, moves all files from the "staged" to the "unstaged" area.
    *
-   * @param filename - file path to be reset
+   * @param filenames - file paths to be reset
    * @returns promise which resolves upon moving files
    *
    * @throws {Git.NotInRepository} If the current path is not a Git repository
    * @throws {Git.GitResponseError} If the server response is not ok
    * @throws {ServerConnection.NetworkError} If the request cannot be made
    */
-  async reset(filename?: string): Promise<void> {
+  async reset(...filenames: string[]): Promise<void> {
     const path = await this._getPathRespository();
     const tid = this._addTask('git:reset:changes');
-    const reset_all = filename === undefined;
+    const reset_all = filenames.length === 0;
     let files;
     if (reset_all) {
       files = (await this._changedFiles('INDEX', 'HEAD'))['files'];
     }
     try {
       await requestAPI('reset', 'POST', {
-        reset_all: filename === undefined,
-        filename: filename === undefined ? null : filename,
+        reset_all: reset_all,
+        filenames: reset_all ? null : filenames,
         top_repo_path: path
       });
 
@@ -806,7 +810,7 @@ export class GitExtension implements IGitExtension {
           });
         }
       } else {
-        this._revertFile(filename);
+        filenames.forEach(filename => this._revertFile(filename));
       }
     } finally {
       this._removeTask(tid);

@@ -331,16 +331,20 @@ export class SinglePastCommitInfo extends React.Component<
 
       try {
         self.props.commands.execute(CommandIDs.gitFileDiff, {
-          filePath: fpath,
-          isText: bool,
-          context: {
-            previousRef: {
-              gitRef: self.props.commit.pre_commit
-            },
-            currentRef: {
-              gitRef: self.props.commit.commit
+          files: [
+            {
+              filePath: fpath,
+              isText: bool,
+              context: {
+                previousRef: {
+                  gitRef: self.props.commit.pre_commit
+                },
+                currentRef: {
+                  gitRef: self.props.commit.commit
+                }
+              }
             }
-          }
+          ]
         });
       } catch (err) {
         console.error(`Failed to open diff view for ${fpath}.\n${err}`);

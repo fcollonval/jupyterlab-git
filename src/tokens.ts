@@ -70,14 +70,14 @@ export interface IGitExtension extends IDisposable {
    *
    * -   If no filename is provided, all files are added.
    *
-   * @param filename - files to add
+   * @param filenames - files to add
    * @returns promise which resolves upon adding files to the repository staging area
    *
    * @throws {Git.NotInRepository} If the current path is not a Git repository
    * @throws {Git.GitResponseError} If the server response is not ok
    * @throws {ServerConnection.NetworkError} If the request cannot be made
    */
-  add(...filename: string[]): Promise<void>;
+  add(...filenames: string[]): Promise<void>;
 
   /**
    * Add all "unstaged" files to the repository staging area.
@@ -247,16 +247,16 @@ export interface IGitExtension extends IDisposable {
   getRelativeFilePath(path?: string): string | null;
 
   /**
-   * Add an entry in .gitignore file
+   * Add entries in .gitignore file
    *
-   * @param filename The name of the entry to ignore
+   * @param filenames The name of the entries to ignore
    * @param useExtension Ignore all files having the same extension as filename
    *
    * @throws {Git.NotInRepository} If the current path is not a Git repository
    * @throws {Git.GitResponseError} If the server response is not ok
    * @throws {ServerConnection.NetworkError} If the request cannot be made
    */
-  ignore(filename: string, useExtension: boolean): Promise<void>;
+  ignore(filenames: string[], useExtension: boolean): Promise<void>;
 
   /**
    * Initialize a new Git repository at a specified path.
@@ -335,14 +335,14 @@ export interface IGitExtension extends IDisposable {
    *
    * -  If no filename is provided, moves all files from the "staged" to the "unstaged" area.
    *
-   * @param filename - file path to be reset
+   * @param filenames - file path to be reset
    * @returns promise which resolves upon moving files
    *
    * @throws {Git.NotInRepository} If the current path is not a Git repository
    * @throws {Git.GitResponseError} If the server response is not ok
    * @throws {ServerConnection.NetworkError} If the request cannot be made
    */
-  reset(filename?: string): Promise<void>;
+  reset(...filename: string[]): Promise<void>;
 
   /**
    * Reset the repository to a specified commit.
@@ -496,9 +496,9 @@ export namespace Git {
      */
     startpoint?: string;
     /**
-     * Filename
+     * Filenames to checkout
      */
-    filename?: string;
+    filenames?: string[];
   }
 
   /** Interface for GitCheckout request result.
